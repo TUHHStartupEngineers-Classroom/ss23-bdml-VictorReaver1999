@@ -6,4 +6,4 @@ author: "Fadel Victor Shanaa"
 
 ![](assets/logo/TIE_logo.svg){width=80% fig-align="center"}
 
-This is my Machine Learning project website where I will upload all my code/scripts and results
+This is my Machine Learning project website where I will upload all my code/scripts and results. It will have 5 parts to it.
