@@ -1,0 +1,110 @@
+# Load the libraries
+library(tidyverse)
+library(tidymodels)
+library(parsnip)
+library(recipes)
+library(rsample)
+library(yardstick)
+library(rpart.plot)
+
+# Create the model
+model_01_linear_lm_simple <- linear_reg(mode = "regression") %>%
+  set_engine("lm")
+
+# Load features
+bike_features_tbl <- readRDS("ds_data/bike_features_tbl.rds")
+
+# Transform the tibble
+bike_features_tbl <- bike_features_tbl %>%
+  select(model:url, `Rear Derailleur`, `Shift Lever`)
+
+bike_features_tbl <- bike_features_tbl %>% 
+  mutate(
+    `shimano dura-ace`        = `Rear Derailleur` %>% str_to_lower() %>% str_detect("shimano dura-ace ") %>% as.numeric(),
+    `shimano ultegra`         = `Rear Derailleur` %>% str_to_lower() %>% str_detect("shimano ultegra ") %>% as.numeric(),
+    `shimano 105`             = `Rear Derailleur` %>% str_to_lower() %>% str_detect("shimano 105 ") %>% as.numeric(),
+    `shimano tiagra`          = `Rear Derailleur` %>% str_to_lower() %>% str_detect("shimano tiagra ") %>% as.numeric(),
+    `Shimano sora`            = `Rear Derailleur` %>% str_to_lower() %>% str_detect("shimano sora") %>% as.numeric(),
+    `shimano deore`           = `Rear Derailleur` %>% str_to_lower() %>% str_detect("shimano deore(?! xt)") %>% as.numeric(),
+    `shimano slx`             = `Rear Derailleur` %>% str_to_lower() %>% str_detect("shimano slx") %>% as.numeric(),
+    `shimano grx`             = `Rear Derailleur` %>% str_to_lower() %>% str_detect("shimano grx") %>% as.numeric(),
+    `Shimano xt`              = `Rear Derailleur` %>% str_to_lower() %>% str_detect("shimano deore xt |shimano xt ") %>% as.numeric(),
+    `Shimano xtr`             = `Rear Derailleur` %>% str_to_lower() %>% str_detect("shimano xtr") %>% as.numeric(),
+    `Shimano saint`           = `Rear Derailleur` %>% str_to_lower() %>% str_detect("shimano saint") %>% as.numeric(),
+    `SRAM red`                = `Rear Derailleur` %>% str_to_lower() %>% str_detect("sram red") %>% as.numeric(),
+    `SRAM force`              = `Rear Derailleur` %>% str_to_lower() %>% str_detect("sram force") %>% as.numeric(),
+    `SRAM rival`              = `Rear Derailleur` %>% str_to_lower() %>% str_detect("sram rival") %>% as.numeric(),
+    `SRAM apex`               = `Rear Derailleur` %>% str_to_lower() %>% str_detect("sram apex") %>% as.numeric(),
+    `SRAM xx1`                = `Rear Derailleur` %>% str_to_lower() %>% str_detect("sram xx1") %>% as.numeric(),
+    `SRAM x01`                = `Rear Derailleur` %>% str_to_lower() %>% str_detect("sram x01|sram xo1") %>% as.numeric(),
+    `SRAM gx`                 = `Rear Derailleur` %>% str_to_lower() %>% str_detect("sram gx") %>% as.numeric(),
+    `SRAM nx`                 = `Rear Derailleur` %>% str_to_lower() %>% str_detect("sram nx") %>% as.numeric(),
+    `SRAM sx`                 = `Rear Derailleur` %>% str_to_lower() %>% str_detect("sram sx") %>% as.numeric(),
+    `SRAM sx`                 = `Rear Derailleur` %>% str_to_lower() %>% str_detect("sram sx") %>% as.numeric(),
+    `Campagnolo potenza`      = `Rear Derailleur` %>% str_to_lower() %>% str_detect("campagnolo potenza") %>% as.numeric(),
+    `Campagnolo super record` = `Rear Derailleur` %>% str_to_lower() %>% str_detect("campagnolo super record") %>% as.numeric(),
+    `shimano nexus`           = `Shift Lever`     %>% str_to_lower() %>% str_detect("shimano nexus") %>% as.numeric(),
+    `shimano alfine`          = `Shift Lever`     %>% str_to_lower() %>% str_detect("shimano alfine") %>% as.numeric()
+  ) %>% 
+  # Remove original columns  
+  select(-c(`Rear Derailleur`, `Shift Lever`)) %>% 
+  # Set all NAs to 0
+  mutate_if(is.numeric, ~replace(., is.na(.), 0))
+
+bike_features_tbl <- bike_features_tbl %>% set_names(str_replace_all(names(bike_features_tbl), " |-", "_"))
+
+bike_features_tbl <- bike_features_tbl %>% 
+  
+  mutate(id = row_number()) %>% 
+  
+  select(id, everything(), -url)
+
+bike_features_tbl %>% glimpse()
+
+# Split dataset
+set.seed(seed = 1113)
+bike_split_obj <- initial_split(bike_features_tbl,prop = 0.80,
+                                strata = category_2)
+
+# Check if testing contains all category_2 values
+bike_split_obj %>% training() %>% distinct(category_2)
+bike_split_obj %>% testing() %>% distinct(category_2)
+
+# create train and test sets
+train_tbl <- training(bike_split_obj)
+test_tbl <- testing(bike_split_obj)
+
+# Create recipe
+recipe_obj <- recipe(price ~ ., data = bike_features_tbl) %>%
+  step_rm(id) %>%
+  step_dummy(all_nominal(), one_hot = TRUE) %>%
+  prep(training = train_tbl)
+
+# Create workflow
+bikes_workflow <-
+  workflow() %>%
+  add_model(model_01_linear_lm_simple) %>%
+  add_recipe(recipe_obj)
+
+# Fit the data
+bikes_fit <-
+  bikes_workflow %>%
+  fit(data = train_tbl)
+
+# Create a function to evaluate metrics
+calc_metrics <- function(model, new_data = test_tbl) {
+
+  model %>%
+    predict(new_data = new_data) %>%
+
+    bind_cols(new_data %>% select(price)) %>%
+    yardstick::metrics(truth = price, estimate = .pred)
+
+}
+
+# Evaluate
+results <- bikes_fit %>%
+  calc_metrics
+
+results
+

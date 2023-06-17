@@ -1,0 +1,154 @@
+---
+title: "AutoML with H2O and GGally"
+author: "Fadel Victor Shanaa"
+---
+
+**Challenge Description:**
+
+***Use your learning from descriptive features and plot_ggpairs() to further investigate the features. Run the functions above according to the features needed.***
+
+***Answer the questions at the bottom. Most of the time, you will only need the images from diagonal.***
+
+**Code Base**
+
+```{r}
+# Load libraries
+suppressMessages(library(h2o))
+suppressMessages(library(GGally))
+suppressMessages(library(tidyverse))
+
+# Load and glimpse attrition data
+employee_attrition_table <- read.csv("C:\\Users\\fvsha\\Documents\\GitHub\\ss23-bdml-VictorReaver1999\\AutoML\\HR-Employee-Attrition.txt")
+employee_attrition_table %>% glimpse()
+
+# Create function given in Business Data Case
+plot_ggpairs <- function(data, color = NULL, density_alpha = 0.5) {
+  
+  color_expr <- enquo(color)
+  
+  if (rlang::quo_is_null(color_expr)) {
+    
+    g <- data %>%
+      ggpairs(lower = "blank") 
+    
+  } else {
+    
+    color_name <- quo_name(color_expr)
+    
+    g <- data %>%
+      ggpairs(mapping = aes_string(color = color_name), 
+              lower = "blank", legend = 1,
+              diag = list(continuous = wrap("densityDiag", 
+                                            alpha = density_alpha))) +
+      theme(legend.position = "bottom")
+  }
+  
+  return(g)
+  
+}
+
+# Create the plot
+emp_att_plot <- employee_attrition_table %>%
+  select(Attrition, MonthlyIncome, PercentSalaryHike, StockOptionLevel, EnvironmentSatisfaction, WorkLifeBalance, JobInvolvement, OverTime, TrainingTimesLastYear, YearsAtCompany, YearsSinceLastPromotion) %>%
+  plot_ggpairs(color = Attrition)
+
+# Save the plot
+ggsave("emp_att_plot.png", emp_att_plot, width = 15, height = 15)
+
+# Display the plot
+emp_att_plot
+```
+
+**Challenge Questions**
+
+1. Compensation Features
+
+  **What can you deduce about the interaction between Monthly Income and Attrition?**
+  
+  **Answer:** 
+  
+  c. Those that are leaving have a lower Monthly Income
+
+
+2. Compensation Features
+
+  **What can you deduce about the interaction between Percent Salary Hike and Attrition?**
+  
+  **Answer:** 
+  
+  d. It's difficult to deduce anything based on the visualization
+
+
+3. Compensation Features
+
+  **What can you deduce about the interaction between Stock Option Level and Attrition?**
+  
+  **Answer:** 
+  
+  b. Those that are staying have a higher stock option level
+
+
+4. Survey Results
+
+  **What can you deduce about the interaction between Environment Satisfaction and Attrition?**
+ 
+  **Answer:** 
+  
+  a. A higher proportion of those leaving have a low environment satisfaction level
+  
+  
+5. Survey Results
+
+  **What can you deduce about the interaction between Work Life Balance and Attrition?**
+  
+  **Answer:** 
+  
+  b. Those that are staying have a higher density of 2's and 3'
+  
+  
+6. Performance Data
+
+  **What Can you deduce about the interaction between Job Involvement and Attrition?**
+  
+  **Answer:** 
+  
+  a. Those that are leaving have a lower density of 3's and 4's
+  
+  
+7. Work-Life Features
+
+  **What can you deduce about the interaction between Over Time and Attrition?**
+  
+  **Answer:** 
+  
+  a. The proportion of those leaving that are working Over Time are high compared to those that are not leaving
+  
+  
+8. Training and Education
+
+  **What can you deduce about the interaction between Training Times Last Year and Attrition?**
+  
+  **Answer:** 
+  
+  c. It's difficult to deduce anything based on the visualization
+  
+  
+9. Time-Based Features
+
+  **What can you deduce about the interaction between Years At Company and Attrition?**
+  
+  **Answer:** 
+  
+  b. People that leave tend to have less working years at the company
+
+
+10. Time-Based Features
+
+  **What can you deduce about the interaction between Years Since Last Promotion and Attrition?**
+  
+  **Answer:** 
+  
+  c. It's difficult to deduce anything based on the visualization
+
+
+**End of AutoML Challenge**

@@ -1,0 +1,27 @@
+# Part 2
+stock_date_matrix_tbl <- as_tibble(stock_date_matrix_tbl)
+
+# Part 6
+k_means_mapped_tbl <- read_rds("k_means_mapped_tbl.rds")
+umap_results_tbl   <- read_rds("umap_results_tbl.rds")
+
+# 6.1 (Pull out K-Means for 10 centers)
+k_means_obj <- k_means_mapped_tbl %>% filter(centers == 10)
+
+# 6.2 (Combine k_means_obj with umap_results_tbl)
+umap_kmeans_results_tbl <- k_means_mapped_tbl %>%
+  augment(stock_date_matrix_tbl) %>%
+  select(symbol, .cluster) %>%
+  left_join(umap_results_tbl, by = "symbol") %>%
+  left_join(sp_500_index_tbl %>% select(symbol, company, sector), by = "symbol")
+
+# 6.3 (Plot the k_means and umap results)
+k_means_umap_plot <- umap_kmeans_results_tbl %>%
+  ggplot(aes(x = V1, y = V2, color = factor(.cluster))) +
+  geom_point(alpha = 0.5) +
+  scale_color_manual(values = palette_light() %>% rep(3)) +
+  theme_tq() +
+  labs(title = "K-Means Clustering with UMAP Projection")
+
+# Save the plot
+ggsave('k_means_umap_plot.png', k_means_umap_plot)
