@@ -6,5 +6,5 @@ author: "Fadel Victor Shanaa"
 
 ![](assets/logo/TIE_logo.svg){width=80% fig-align="center"}
 
-This is my Journal to document all my Machine Learning Coursework, Scripts,
+This is my Journal to document all my Machine Learning Coursework and Code, Scripts,
 and Results.
